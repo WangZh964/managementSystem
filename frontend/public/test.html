@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录接口测试</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 3px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        button {
+            padding: 8px 15px;
+            margin-right: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        input {
+            padding: 8px;
+            margin-right: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>登录接口测试</h1>
+    
+    <div class="test-section">
+        <h2>测试1: JSON格式请求</h2>
+        <p>测试前端发送JSON格式数据的情况</p>
+        <div>
+            <input type="text" id="json-username" placeholder="用户名" value="admin">
+            <input type="password" id="json-password" placeholder="密码" value="123456">
+            <input type="text" id="json-code" placeholder="请输入验证码">
+            <img id="json-captcha-img" src="" alt="验证码" style="vertical-align: middle; cursor: pointer;" onclick="refreshJsonCaptcha()">
+            <button onclick="refreshJsonCaptcha()">刷新验证码</button>
+        </div>
+        <button onclick="testJsonRequest()">发送JSON请求</button>
+        <div id="json-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>测试2: 表单格式请求</h2>
+        <p>测试前端发送表单格式数据的情况</p>
+        <div>
+            <input type="text" id="form-username" placeholder="用户名" value="admin">
+            <input type="password" id="form-password" placeholder="密码" value="123456">
+            <input type="text" id="form-code" placeholder="请输入验证码">
+            <img id="form-captcha-img" src="" alt="验证码" style="vertical-align: middle; cursor: pointer;" onclick="refreshFormCaptcha()">
+            <button onclick="refreshFormCaptcha()">刷新验证码</button>
+        </div>
+        <button onclick="testFormRequest()">发送表单请求</button>
+        <div id="form-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>测试3: 验证码接口</h2>
+        <p>测试验证码接口是否正常工作</p>
+        <button onclick="testCaptcha()">获取验证码</button>
+        <div id="captcha-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>测试4: 跨域预检请求</h2>
+        <p>测试跨域预检请求(OPTIONS)是否正常</p>
+        <button onclick="testPreflight()">发送OPTIONS请求</button>
+        <div id="preflight-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>测试5: 通过代理访问登录接口</h2>
+        <p>测试通过前端代理访问登录接口</p>
+        <div>
+            <input type="text" id="direct-username" placeholder="用户名" value="admin">
+            <input type="password" id="direct-password" placeholder="密码" value="123456">
+            <input type="text" id="direct-code" placeholder="请输入验证码">
+            <img id="direct-captcha-img" src="" alt="验证码" style="vertical-align: middle; cursor: pointer;" onclick="refreshDirectCaptcha()">
+            <button onclick="refreshDirectCaptcha()">刷新验证码</button>
+        </div>
+        <button onclick="testDirectAccess()">通过代理访问</button>
+        <div id="direct-result"></div>
+    </div>
+
+    <script>
+        // 页面加载时获取验证码
+        window.onload = async function() {
+            // 获取所有验证码
+            await refreshJsonCaptcha();
+            await refreshFormCaptcha();
+            await refreshDirectCaptcha();
+            
+            // 获取CSRF cookie
+            await getCSRFCookie();
+        };
+        
+        // 刷新JSON测试的验证码
+        async function refreshJsonCaptcha() {
+            try {
+                const response = await axios.get('/image/code/', {
+                    responseType: 'blob'
+                });
+                
+                const imageUrl = URL.createObjectURL(response.data);
+                document.getElementById('json-captcha-img').src = imageUrl;
+                
+                // 从响应中获取验证码文本（如果后端支持）
+                // 注意：通常验证码文本不会直接返回，这里只是示例
+                // 实际使用时需要用户手动输入图片中显示的验证码
+            } catch (error) {
+                console.error('获取JSON验证码失败:', error);
+                document.getElementById('json-result').innerHTML = `
+                    <div class="test-result error">
+                        <h3>获取验证码失败</h3>
+                        <p>错误信息: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // 刷新表单测试的验证码
+        async function refreshFormCaptcha() {
+            try {
+                const response = await axios.get('/image/code/', {
+                    responseType: 'blob'
+                });
+                
+                const imageUrl = URL.createObjectURL(response.data);
+                document.getElementById('form-captcha-img').src = imageUrl;
+            } catch (error) {
+                console.error('获取表单验证码失败:', error);
+                document.getElementById('form-result').innerHTML = `
+                    <div class="test-result error">
+                        <h3>获取验证码失败</h3>
+                        <p>错误信息: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        // 获取CSRF令牌
+        function getCSRFToken() {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.startsWith('csrftoken=')) {
+                    return cookie.substring('csrftoken='.length);
+                }
+            }
+            return null;
+        }
+
+        // 获取CSRF cookie
+        async function getCSRFCookie() {
+            try {
+                // 通过代理访问后端首页获取CSRF cookie
+                await axios.get('/api/', {
+                    withCredentials: true
+                });
+                return getCSRFToken();
+            } catch (error) {
+                console.error('获取CSRF cookie失败:', error);
+                return null;
+            }
+        }
+
+        // 测试JSON格式请求
+        async function testJsonRequest() {
+            const username = document.getElementById('json-username').value;
+            const password = document.getElementById('json-password').value;
+            const code = document.getElementById('json-code').value;
+            
+            if (!username || !password || !code) {
+                document.getElementById('json-result').innerHTML = `
+                    <div class="test-result error">
+                        <h3>测试失败</h3>
+                        <p>请填写所有字段</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            try {
+                // 获取CSRF令牌
+                const csrfToken = await getCSRFCookie();
+                
+                if (!csrfToken) {
+                    document.getElementById('json-result').innerHTML = `
+                        <div class="test-result error">
+                            <h3>JSON请求测试失败</h3>
+                            <p>无法获取CSRF令牌</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const response = await axios.post('/login/', {
+                    username: username,
+                    password: password,
+                    code: code
+                }, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    withCredentials: true
+                });
+                
+                document.getElementById('json-result').innerHTML = `
+                    <div class="test-result success">
+                        <h3>JSON请求测试成功</h3>
+                        <p>响应状态: ${response.status}</p>
+                        <p>响应数据: <pre>${JSON.stringify(response.data, null, 2)}</pre></p>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('json-result').innerHTML = `
+                    <div class="test-result error">
+                        <h3>JSON请求测试失败</h3>
+                        <p>错误信息: ${error.message}</p>
+                        <p>响应状态: ${error.response?.status}</p>
+                        <p>响应数据: <pre>${JSON.stringify(error.response?.data, null, 2)}</pre></p>
+                    </div>
+                `;
+            }
+        }
+        
+        // 测试表单格式请求
+        async function testFormRequest() {
+            const username = document.getElementById('form-username').value;
+            const password = document.getElementById('form-password').value;
+            const code = document.getElementById('form-code').value;
+            
+            if (!username || !password || !code) {
+                document.getElementById('form-result').innerHTML = `
+                    <div class="test-result error">
+                        <h3>测试失败</h3>
+                        <p>请填写所有字段</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            try {
+                // 获取CSRF令牌
+                const csrfToken = await getCSRFCookie();
+                
+                if (!csrfToken) {
+                    document.getElementById('form-result').innerHTML = `
+                        <div class="test-result error">
+                            <h3>表单请求测试失败</h3>
+                            <p>无法获取CSRF令牌</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const formData = new FormData();
+                formData.append('username', username);
+                formData.append('password', password);
+                formData.append('code', code);
+                
+                const response = await axios.post('/login/', formData, {
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': csrfToken
+                    },
+                    withCredentials: true
+                });
+                
+                document.getElementById('form-result').innerHTML = `
+                    <div class="test-result success">
+                        <h3>表单请求测试成功</h3>
+                        <p>响应状态: ${response.status}</p>
+                        <p>响应数据: <pre>${JSON.stringify(response.data, null, 2)}</pre></p>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('form-result').innerHTML = `
+                    <div class="test-result error">
+                        <h3>表单请求测试失败</h3>
+                        <p>错误信息: ${error.message}</p>
+                        <p>响应状态: ${error.response?.status}</p>
+                        <p>响应数据: <pre>${JSON.stringify(error.response?.data, null, 2)}</pre></p>
+                    </div>
+                `;
+            }
+        }
+        
+        // 测试验证码接口
+        async function testCaptcha() {
+            const resultDiv = document.getElementById('captcha-result');
+            resultDiv.innerHTML = '<p>获取中...</p>';
+            
+            try {
+                console.log('获取验证码');
+                
+                const response = await axios.get('/image/code/', {
+                    responseType: 'blob'
+                });
+                
+                console.log('验证码响应:', response);
+                
+                // 创建图片URL
+                const imageUrl = URL.createObjectURL(response.data);
+                
+                resultDiv.innerHTML = `
+                    <div class="test-result success">
+                        <h3>验证码获取成功</h3>
+                        <p>状态码: ${response.status}</p>
+                        <p>验证码图片:</p>
+                        <img src="${imageUrl}" alt="验证码">
+                    </div>
+                `;
+            } catch (error) {
+                console.error('验证码获取错误:', error);
+                
+                resultDiv.innerHTML = `
+                    <div class="test-result error">
+                        <h3>验证码获取失败</h3>
+                        <p>错误信息: ${error.message}</p>
+                        <p>响应状态: ${error.response?.status || '无'}</p>
+                        <p>响应数据:</p>
+                        <pre>${JSON.stringify(error.response?.data || '无', null, 2)}</pre>
+                    </div>
+                `;
+            }
+        }
+        
+        // 测试跨域预检请求
+        async function testPreflight() {
+            const resultDiv = document.getElementById('preflight-result');
+            resultDiv.innerHTML = '<p>发送中...</p>';
+            
+            try {
+                console.log('发送OPTIONS请求');
+                
+                const response = await axios.options('/login/');
+                
+                console.log('OPTIONS请求响应:', response);
+                
+                resultDiv.innerHTML = `
+                    <div class="test-result success">
+                        <h3>预检请求成功</h3>
+                        <p>状态码: ${response.status}</p>
+                        <p>响应头:</p>
+                        <pre>${JSON.stringify(response.headers, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('OPTIONS请求错误:', error);
+                
+                resultDiv.innerHTML = `
+                    <div class="test-result error">
+                        <h3>预检请求失败</h3>
+                        <p>错误信息: ${error.message}</p>
+                        <p>响应状态: ${error.response?.status || '无'}</p>
+                        <p>响应头:</p>
+                        <pre>${JSON.stringify(error.response?.headers || '无', null, 2)}</pre>
+                    </div>
+                `;
+            }
+        }
+        
+        // 刷新直接访问测试的验证码
+        async function refreshDirectCaptcha() {
+            try {
+                const response = await axios.get('/image/code/', {
+                    responseType: 'blob'
+                });
+                
+                const imageUrl = URL.createObjectURL(response.data);
+                document.getElementById('direct-captcha-img').src = imageUrl;
+            } catch (error) {
+                console.error('获取直接访问验证码失败:', error);
+                document.getElementById('direct-result').innerHTML = `
+                    <div class="test-result error">
+                        <h3>获取验证码失败</h3>
+                        <p>错误信息: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // 测试直接访问登录接口
+        async function testDirectAccess() {
+            const username = document.getElementById('direct-username').value;
+            const password = document.getElementById('direct-password').value;
+            const code = document.getElementById('direct-code').value;
+            
+            if (!username || !password || !code) {
+                document.getElementById('direct-result').innerHTML = `
+                    <div class="test-result error">
+                        <h3>测试失败</h3>
+                        <p>请填写所有字段</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            try {
+                // 获取CSRF令牌
+                const csrfToken = await getCSRFCookie();
+                
+                if (!csrfToken) {
+                    document.getElementById('direct-result').innerHTML = `
+                        <div class="test-result error">
+                            <h3>代理访问测试失败</h3>
+                            <p>无法获取CSRF令牌</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const formData = new FormData();
+                formData.append('username', username);
+                formData.append('password', password);
+                formData.append('code', code);
+                
+                // 通过代理访问登录接口
+                const response = await axios.post('/login/', formData, {
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': csrfToken
+                    },
+                    withCredentials: true
+                });
+                
+                document.getElementById('direct-result').innerHTML = `
+                    <div class="test-result success">
+                        <h3>代理访问测试成功</h3>
+                        <p>响应状态: ${response.status}</p>
+                        <p>响应数据: <pre>${JSON.stringify(response.data, null, 2)}</pre></p>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('direct-result').innerHTML = `
+                    <div class="test-result error">
+                        <h3>代理访问测试失败</h3>
+                        <p>错误信息: ${error.message}</p>
+                        <p>响应状态: ${error.response?.status}</p>
+                        <p>响应数据: <pre>${JSON.stringify(error.response?.data, null, 2)}</pre></p>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
